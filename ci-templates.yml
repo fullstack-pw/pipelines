@@ -9,15 +9,16 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   DOCKER_OPTS: "--insecure-registry docker-registry.docker-registry.svc.cluster.local:5000"
 
-.test-app: &test-app
+.test-app-template:
   stage: test
+  image: alpine
   tags:
     - k8s-gitlab-runner
   script:
     - echo "Running tests for $APP_NAME..."
     - sleep 10
 
-.build-docker-image: &build-docker-image
+.build-docker-image-template:
   stage: build
   tags:
     - k8s-gitlab-runner
@@ -40,8 +41,9 @@ variables:
     - docker build -t docker-registry.docker-registry.svc.cluster.local:5000/$APP_NAME:latest $DOCKER_BUILD_PATH
     - docker push docker-registry.docker-registry.svc.cluster.local:5000/$APP_NAME:latest
 
-.deploy-app: &deploy-app
+.deploy-app-template:
   stage: deploy
+  image: alpine
   tags:
     - k8s-gitlab-runner
   script:
