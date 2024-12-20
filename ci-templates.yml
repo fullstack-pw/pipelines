@@ -1,0 +1,49 @@
+# ci-templates.yml
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_HOST: tcp://dind:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_OPTS: "--insecure-registry docker-registry.docker-registry.svc.cluster.local:5000"
+
+.test-app: &test-app
+  stage: test
+  tags:
+    - k8s-gitlab-runner
+  script:
+    - echo "Running tests for $APP_NAME..."
+    - sleep 10
+
+.build-docker-image: &build-docker-image
+  stage: build
+  tags:
+    - k8s-gitlab-runner
+  image: docker:latest
+  services:
+    - name: docker:dind-rootless
+      alias: dind
+      entrypoint: ["/bin/sh"]
+      command:
+        - -c
+        - >
+          cp /usr/local/bin/dockerd-entrypoint.sh /tmp/dockerd-entrypoint.sh &&
+          sed -i '/--host=tcp:\/\/0.0.0.0:2376/ s|\(.*--host=tcp://0.0.0.0:2376\)|\1 --insecure-registry docker-registry.docker-registry.svc.cluster.local:5000|' /tmp/dockerd-entrypoint.sh &&
+          sed -i '/--host=tcp:\/\/0.0.0.0:2375/ s|\(.*--host=tcp://0.0.0.0:2375\)|\1 --insecure-registry docker-registry.docker-registry.svc.cluster.local:5000|' /tmp/dockerd-entrypoint.sh &&
+          grep -A3 -B3  "docker-registry.docker-registry.svc.cluster.local:5000" /tmp/dockerd-entrypoint.sh &&
+          /tmp/dockerd-entrypoint.sh
+  script:
+    - echo "Building Docker image for $APP_NAME..."
+    - sleep 30
+    - docker build -t docker-registry.docker-registry.svc.cluster.local:5000/$APP_NAME:latest $DOCKER_BUILD_PATH
+    - docker push docker-registry.docker-registry.svc.cluster.local:5000/$APP_NAME:latest
+
+.deploy-app: &deploy-app
+  stage: deploy
+  tags:
+    - k8s-gitlab-runner
+  script:
+    - echo "Deploying $APP_NAME to $ENVIRONMENT..."
+    - sleep 10
