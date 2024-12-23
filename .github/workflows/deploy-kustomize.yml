@@ -1,0 +1,44 @@
+name: Deploy Kustomize Workload
+
+on:
+  workflow_call:
+    inputs:
+      kustomize-dir:
+        description: Path to the directory containing the Kustomize manifests
+        required: true
+        type: string
+      context:
+        description: Kubernetes context to use (optional)
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  deploy-kustomize:
+    name: Deploy Kustomize Workload
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          mkdir ~/.kube
+
+      - name: Extract Kubeconfig from Vault Secret
+        id: extract-kubeconfig
+        run: |
+            KUBECONFIG_FILE="/vault/secrets/github-runner"
+            cat $KUBECONFIG_FILE > ~/.kube/config
+  
+      - name: Set Kubernetes Context (if provided)
+        if: ${{ inputs.context != '' }}
+        run: kubectl config use-context ${{ inputs.context }}
+
+      - name: Deploy Using Kubectl with Kustomize
+        run: kubectl apply -k ${{ inputs.kustomize-dir }}
+        env:
+            KUBECONFIG: ${{ env.KUBECONFIG }}
