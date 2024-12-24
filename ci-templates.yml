@@ -27,10 +27,23 @@ variables:
       alias: dind
 
   script:
+    - echo "Waiting for Docker Daemon to become available..."
+    - for i in {1..10}; do
+        if docker info > /dev/null 2>&1; then
+          echo "Docker is up and running!";
+          break;
+        fi;
+        echo "Waiting for Docker Daemon...";
+        sleep 3;
+      done;
+    - if ! docker info > /dev/null 2>&1; then
+        echo "Docker Daemon did not become ready in time.";
+        exit 1;
+      fi
     - echo "Building Docker image for $APP_NAME..."
-    - sleep 30
     - docker build -t registry.fullstack.pw/$APP_NAME:latest $DOCKER_BUILD_PATH
     - docker push registry.fullstack.pw/$APP_NAME:latest
+
 
 .deploy-app-template:
   stage: deploy
