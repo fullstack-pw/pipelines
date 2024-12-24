@@ -39,4 +39,20 @@ variables:
     - k8s-gitlab-runner
   script:
     - echo "Deploying $APP_NAME to $ENVIRONMENT..."
-    - sleep 10
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+    - |
+      if [ -n "$CONTEXT" ]; then
+        kubectl config use-context "$CONTEXT"
+      fi
+    - kubectl apply -k "$KUSTOMIZE_DIR"
+
+  variables:
+    KUBECONFIG_DIR: "/vault/secrets/github-runner"
+  before_script:
+    - export KUBECONFIG_CONTENT=$(cat $KUBECONFIG_DIR)
+    - export KUBECONFIG=~/.kube/config
+
