@@ -22,23 +22,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install tools
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-          mkdir ~/.kube
-
-      - name: Extract Kubeconfig from Vault Secret
-        id: extract-kubeconfig
-        run: |
-            KUBECONFIG_FILE="/vault/secrets/github-runner"
-            cat $KUBECONFIG_FILE > ~/.kube/config
-  
       - name: Set Kubernetes Context (if provided)
         if: ${{ inputs.context != '' }}
-        run: kubectl config use-context ${{ inputs.context }}
+        run: |
+          cp /etc/kubeconfig $HOME/.kube/config
+          export KUBECONFIG=$HOME/.kube/config
+          kubectl config use-context ${{ inputs.context }}
+
 
       - name: Deploy Using Kubectl with Kustomize
         run: kubectl apply -k ${{ inputs.kustomize-dir }}
         env:
-            KUBECONFIG: ${{ env.KUBECONFIG }}
+          KUBECONFIG: /etc/kubeconfig
