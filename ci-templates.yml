@@ -8,14 +8,15 @@ variables:
   DOCKER_HOST: tcp://dind:2375
   DOCKER_TLS_CERTDIR: ""
 
-.test-app-template:
+.go_tests:
   stage: test
-  image: alpine
-  tags:
-    - k8s-gitlab-runner
+  image: golang:latest
   script:
-    - echo "Running tests for $APP_NAME..."
-    - sleep 10
+    - go mod tidy
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
+    - export PATH=$PATH:./bin
+    - go test ./... -v
+    - golangci-lint run ./...
 
 .build-docker-image-template:
   stage: build
