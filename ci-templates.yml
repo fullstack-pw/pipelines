@@ -33,15 +33,15 @@ variables:
     DOCKER_HOST: tcp://docker:2375  # Point Docker CLI to the DinD service
     DOCKER_TLS_CERTDIR: ""         # Disable TLS for DinD
     DOCKER_BUILDKIT: 1             # Enable BuildKit for faster builds
+    IMAGE_TAG: "${CI_COMMIT_SHA}"  # Use commit SHA as the image tag
   script:
     - sleep 10
     - echo "Pulling pre-built image (if exists) to use as cache..."
-    - docker pull registry.fullstack.pw/$APP_NAME:latest || true
+    - docker pull registry.fullstack.pw/$APP_NAME:$IMAGE_TAG || true
     - echo "Building Docker image for $APP_NAME..."
-    - docker build --cache-from registry.fullstack.pw/$APP_NAME:latest -t registry.fullstack.pw/$APP_NAME:latest $DOCKER_BUILD_PATH
+    - docker build --cache-from registry.fullstack.pw/$APP_NAME:$IMAGE_TAG -t registry.fullstack.pw/$APP_NAME:$IMAGE_TAG $DOCKER_BUILD_PATH
     - echo "Pushing Docker image to the registry..."
-    - docker push registry.fullstack.pw/$APP_NAME:latest
-
+    - docker push registry.fullstack.pw/$APP_NAME:$IMAGE_TAG
 
 .deploy-app-template:
   stage: deploy
@@ -49,22 +49,18 @@ variables:
   tags:
     - k8s-gitlab-runner
   script:
-    - apk update && apk add -y curl
+    - apk update && apk add curl
     - echo "Deploying $APP_NAME to $ENVIRONMENT..."
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     - chmod +x kubectl
     - mv kubectl /usr/local/bin/
     - mkdir -p ~/.kube
-    - echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+    - cat /tmp/kubeconfig > /root/.kube/config
+    - export KUBECONFIG=/root/.kube/config
     - |
       if [ -n "$CONTEXT" ]; then
         kubectl config use-context "$CONTEXT"
       fi
+    - echo "Updating deployment with image registry.fullstack.pw/$APP_NAME:$CI_COMMIT_SHA"
+    - kubectl set image deployment/$APP_NAME $APP_NAME=registry.fullstack.pw/$APP_NAME:$CI_COMMIT_SHA -n $ENVIRONMENT
     - kubectl apply -k "$KUSTOMIZE_DIR"
-
-  variables:
-    KUBECONFIG_DIR: "/vault/secrets/github-runner"
-  before_script:
-    - export KUBECONFIG_CONTENT=$(cat $KUBECONFIG_DIR)
-    - export KUBECONFIG=~/.kube/config
-
