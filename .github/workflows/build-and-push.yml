@@ -6,8 +6,8 @@ on:
         description: Context for the Docker build
         required: true
         type: string
-      image-tag:
-        description: Docker image tag
+      app-name:
+        description: Docker image name
         required: true
         type: string
 
@@ -27,4 +27,5 @@ jobs:
         with:
           context: ${{ inputs.app-context }}
           push: true
-          tags: ${{ inputs.image-tag }}
+          tags: |
+            registry.fullstack.pw/${{ inputs.app-name }}:${{ github.sha }}

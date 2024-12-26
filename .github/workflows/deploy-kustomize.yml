@@ -12,6 +12,10 @@ on:
         required: false
         type: string
         default: ""
+      app-name:
+        description: Name of the application (used in the Kustomize manifest)
+        required: true
+        type: string
 
 jobs:
   deploy-kustomize:
@@ -29,8 +33,17 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config use-context ${{ inputs.context }}
 
+      - name: Build Kustomize Manifests with Updated Image
+        id: build
+        run: |
+          kubectl kustomize ${{ inputs.kustomize-dir }} \
+            | sed "s|latest|${{ github.sha }}|" \
+            > manifest.yaml
 
-      - name: Deploy Using Kubectl with Kustomize
-        run: kubectl apply -k ${{ inputs.kustomize-dir }}
+      - name: Display Updated Manifest
+        run: cat manifest.yaml
+
+      - name: Deploy Using Kubectl
+        run: kubectl apply -f manifest.yaml
         env:
           KUBECONFIG: /etc/kubeconfig
