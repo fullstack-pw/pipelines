@@ -61,6 +61,6 @@ variables:
       if [ -n "$CONTEXT" ]; then
         kubectl config use-context "$CONTEXT"
       fi
-    - echo "Updating deployment with image registry.fullstack.pw/$APP_NAME:$CI_COMMIT_SHA"
-    - kubectl set image deployment/$APP_NAME $APP_NAME=registry.fullstack.pw/$APP_NAME:$CI_COMMIT_SHA -n $ENVIRONMENT
-    - kubectl apply -k "$KUSTOMIZE_DIR"
+    - kubectl kustomize $KUSTOMIZE_DIR | sed "s|latest|$CI_COMMIT_SHA|" > manifest.yaml
+    - cat manifest.yaml
+    - kubectl apply -f manifest.yaml
