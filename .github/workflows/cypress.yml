@@ -1,0 +1,26 @@
+name: Run Cypress Tests
+
+on:
+  workflow_call:
+    inputs:
+      app-url:
+        description: URL of the application to test
+        required: true
+        type: string
+
+jobs:
+  cypress-tests:
+    name: Run Cypress Tests
+    runs-on: self-hosted
+    container:
+      image: cypress/included:latest
+      options: --user node
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        env:
+          CYPRESS_INSTALL_BINARY: 0
