@@ -45,5 +45,3 @@ jobs:
 
       - name: Deploy Using Kubectl
         run: kubectl apply -f manifest.yaml
-        env:
-          KUBECONFIG: /etc/kubeconfig
