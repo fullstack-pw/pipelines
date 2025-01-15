@@ -26,22 +26,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Kubernetes Context (if provided)
-        if: ${{ inputs.context != '' }}
+      - name: Deploy
         run: |
           cp /etc/kubeconfig $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
           kubectl config use-context ${{ inputs.context }}
-
-      - name: Build Kustomize Manifests with Updated Image
-        id: build
-        run: |
           kubectl kustomize ${{ inputs.kustomize-dir }} \
             | sed "s|latest|${{ github.sha }}|" \
             > manifest.yaml
-
-      - name: Display Updated Manifest
-        run: cat manifest.yaml
-
-      - name: Deploy Using Kubectl
-        run: kubectl apply -f manifest.yaml
+          cat manifest.yaml
+          kubectl config current-context
+          kubectl apply -f manifest.yaml
