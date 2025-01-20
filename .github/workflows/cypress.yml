@@ -10,7 +10,6 @@ on:
 
 jobs:
   cypress-tests:
-    name: Run Cypress Tests
     runs-on: self-hosted
     container:
       image: cypress/included:latest

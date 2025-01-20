@@ -4,7 +4,6 @@ on:
 
 jobs:
   iac-tests:
-    name: IaC tests
     runs-on: self-hosted
     steps:
       - name: Checkout Repository

@@ -19,7 +19,6 @@ on:
 
 jobs:
   deploy-kustomize:
-    name: Deploy Kustomize Workload
     runs-on: self-hosted
 
     steps:
