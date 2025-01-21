@@ -3,6 +3,7 @@ stages:
   - test
   - build
   - deploy
+  - e2e
 
 variables:
   DOCKER_HOST: tcp://dind:2375
@@ -65,3 +66,14 @@ variables:
     - kubectl kustomize $KUSTOMIZE_DIR | sed "s|latest|$CI_COMMIT_SHA|" > manifest.yaml
     - cat manifest.yaml
     - kubectl apply -f manifest.yaml
+
+.cypress-template:
+  stage: e2e
+  image: cypress/included:latest
+  tags:
+    - k8s-gitlab-runner
+  variables:
+    CYPRESS_BASE_URL: "$CYPRESS_BASE_URL"
+  script:
+    - echo "Running Cypress tests against $CYPRESS_BASE_URL"
+    - npx cypress run
