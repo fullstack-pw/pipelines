@@ -27,7 +27,7 @@ jobs:
 
       - name: Deploy
         run: |
-          cp /etc/kubeconfig $HOME/.kube/config
+          echo "${KUBECONFIG}" > $HOME/.kube/config
           export KUBECONFIG=$HOME/.kube/config
           kubectl config use-context ${{ inputs.context }}
           kubectl kustomize ${{ inputs.kustomize-dir }} \
