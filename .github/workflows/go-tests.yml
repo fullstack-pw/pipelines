@@ -1,6 +1,11 @@
 name: Go tests
 on:
   workflow_call:
+    inputs:
+      go-dir:
+        description: Path to the directory containing the Golang code
+        required: true
+        type: string
 
 jobs:
   go-tests:
@@ -28,11 +33,17 @@ jobs:
           check-latest: true
 
       - name: Install dependencies
-        run: go mod tidy
+        run: |
+          cd ${{ inputs.go-dir }}
+          go mod tidy
         
       - name: Run Unit Tests
-        run: go test ./... -v
+        run: |
+          cd ${{ inputs.go-dir }}
+          go test ./... -v
         
       - name: Run Static Analysis
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest && export PATH=$PATH:./bin && golangci-lint run ./...
+        run: |
+          cd ${{ inputs.go-dir }}
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest && export PATH=$PATH:./bin && golangci-lint run ./...
 
