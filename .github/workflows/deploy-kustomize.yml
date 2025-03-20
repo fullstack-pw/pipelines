@@ -27,8 +27,10 @@ jobs:
 
       - name: Deploy
         run: |
-          cp /etc/kubeconfig $HOME/.kube/config
-          export KUBECONFIG=$HOME/.kube/config
+          cp ~/.kube/config config
+          export KUBECONFIG=~/config
+          kubectl config view
+          kubectl config get-contexts
           kubectl config use-context ${{ inputs.context }}
           kubectl kustomize ${{ inputs.kustomize-dir }} \
             | sed "s|latest|${{ github.sha }}|" \
