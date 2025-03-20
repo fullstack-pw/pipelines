@@ -27,6 +27,7 @@ jobs:
 
       - name: Deploy
         run: |
+          export KUBECONFIG=~/.kube/config
           kubectl config use-context ${{ inputs.context }}
           kubectl kustomize ${{ inputs.kustomize-dir }} \
             | sed "s|latest|${{ github.sha }}|" \
