@@ -27,8 +27,8 @@ jobs:
 
       - name: Deploy
         run: |
-          cp ~/.kube/config config
-          export KUBECONFIG=~/config
+          cp /home/runner/.kube/config /home/runner/config
+          export KUBECONFIG=/home/runner/config
           kubectl config view
           kubectl config get-contexts
           kubectl config use-context ${{ inputs.context }}
