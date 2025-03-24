@@ -25,11 +25,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/Cypress
-          key: ${{ runner.os }}-cypress-${{ hashFiles('**/package-lock.json') }}
-
       - name: Configure environment variables
         id: set-env
         run: |
@@ -61,4 +56,3 @@ jobs:
           CYPRESS_INSTALL_BINARY: 0
         with:
           start: ${{ inputs['start'] }}
-          cache-key: ${{ runner.os }}-cypress-${{ hashFiles('**/package-lock.json') }}
