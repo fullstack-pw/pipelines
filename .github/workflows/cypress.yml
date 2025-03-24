@@ -3,10 +3,11 @@ name: Run Cypress Tests
 on:
   workflow_call:
     inputs:
-      app-url:
-        description: URL of the application to test
+      env-vars:
+        description: JSON string of additional environment variables
         required: false
         type: string
+        default: "{}"
 
 jobs:
   cypress-tests:
@@ -23,6 +24,24 @@ jobs:
         with:
           path: ~/.cache/Cypress
           key: ${{ runner.os }}-cypress-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Configure environment variables
+        id: set-env
+        run: |
+          # Parse the JSON string of env vars and prepare them for export
+          ENV_JSON='${{ inputs.env-vars }}'
+          echo "$ENV_JSON" > env_vars.json
+
+          # Debug
+          echo "Received environment variables:"
+          cat env_vars.json
+
+          # Add all custom env vars with CYPRESS_ prefix
+          jq -r 'to_entries | .[] | "CYPRESS_\(.key)=\(.value)"' env_vars.json >> cypress.env
+
+          # Debug
+          echo "Final environment variables:"
+          cat cypress.env
 
       - name: Cypress run
         uses: cypress-io/github-action@v6
