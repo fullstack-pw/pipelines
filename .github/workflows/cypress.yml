@@ -52,5 +52,10 @@ jobs:
       - name: NPM install
         run: npm install
 
-      - name: NPM start
-        run: ${{ inputs['start'] }}
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        env:
+          CYPRESS_BASE_URL: ${{ inputs['app-url'] }}
+          CYPRESS_INSTALL_BINARY: 0
+        with:
+          start: ${{ inputs['start'] }}
