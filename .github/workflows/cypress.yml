@@ -3,6 +3,11 @@ name: Run Cypress Tests
 on:
   workflow_call:
     inputs:
+      start:
+        description: NPM start command to run
+        required: false
+        type: string
+        default: "npm start"
       env-vars:
         description: JSON string of additional environment variables
         required: false
@@ -55,4 +60,5 @@ jobs:
           CYPRESS_BASE_URL: ${{ inputs['app-url'] }}
           CYPRESS_INSTALL_BINARY: 0
         with:
+          start: ${{ inputs['start'] }}
           cache-key: ${{ runner.os }}-cypress-${{ hashFiles('**/package-lock.json') }}
