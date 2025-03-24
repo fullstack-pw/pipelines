@@ -28,16 +28,22 @@ jobs:
       - name: Configure environment variables
         id: set-env
         run: |
-          # Parse the JSON string of env vars and prepare them for export
-          ENV_JSON='${{ inputs.env-vars }}'
-          echo "$ENV_JSON" > env_vars.json
+          # Create initial env file with base URL
+          echo "CYPRESS_BASE_URL=${{ inputs.app-url }}" > cypress.env
+          echo "CYPRESS_INSTALL_BINARY=0" >> cypress.env
 
           # Debug
           echo "Received environment variables:"
-          cat env_vars.json
+          echo '${{ inputs.env-vars }}'
 
-          # Add all custom env vars with CYPRESS_ prefix
-          jq -r 'to_entries | .[] | "CYPRESS_\(.key)=\(.value)"' env_vars.json >> cypress.env
+          # Use Node.js to parse JSON and create environment variables
+          node -e '
+            const envVars = JSON.parse(`${{ inputs.env-vars }}`);
+            const fs = require("fs");
+            Object.entries(envVars).forEach(([key, value]) => {
+              fs.appendFileSync("cypress.env", `CYPRESS_${key}=${value}\n`);
+            });
+          '
 
           # Debug
           echo "Final environment variables:"
