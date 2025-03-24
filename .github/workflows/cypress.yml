@@ -28,6 +28,6 @@ jobs:
         uses: cypress-io/github-action@v6
         env:
           CYPRESS_BASE_URL: ${{ inputs['app-url'] }}
-          CYPRESS_INSTALL_BINARY: 1
+          CYPRESS_INSTALL_BINARY: 0
         with:
           cache-key: ${{ runner.os }}-cypress-${{ hashFiles('**/package-lock.json') }}
