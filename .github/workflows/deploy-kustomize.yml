@@ -37,4 +37,4 @@ jobs:
             > manifest.yaml
           cat manifest.yaml
           kubectl config current-context
-          kubectl apply -f manifest.yaml
+          kubectl apply --wait=true --timeout=300s -f manifest.yaml
