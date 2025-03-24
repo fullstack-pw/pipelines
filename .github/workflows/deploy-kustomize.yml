@@ -38,4 +38,4 @@ jobs:
           cat manifest.yaml
           kubectl config current-context
           kubectl apply -f manifest.yaml
-          kubectl rollout status deployment/${{ inputs.app-name }} --timeout=5m || exit 1
+          kubectl rollout status deployment/${{ inputs.app-name }} -n default --timeout=5m || exit 1
