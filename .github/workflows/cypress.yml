@@ -45,10 +45,6 @@ jobs:
             });
           '
 
-          # Debug
-          echo "Final environment variables:"
-          cat cypress.env
-
       - name: NPM install
         run: npm install
 
