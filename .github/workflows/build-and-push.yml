@@ -10,6 +10,11 @@ on:
         description: Docker image name
         required: true
         type: string
+      app-dockerfile:
+        description: Docker image name
+        required: false
+        type: string
+        default: Dockerfile
 
 jobs:
   build-and-push:
@@ -26,5 +31,6 @@ jobs:
         with:
           context: ${{ inputs.app-context }}
           push: true
+          file: ${{ inputs.app-dockerfile }}
           tags: |
             registry.fullstack.pw/${{ inputs.app-name }}:${{ github.sha }}
