@@ -33,6 +33,10 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
+          cache-from: |
+            type=registry,ref=registry.fullstack.pw/${{ inputs.app-name }}:latest
+          cache-to: |
+            type=inline
           context: ${{ inputs.app-context }}
           push: true
           file: ${{ inputs.app-dockerfile }}
