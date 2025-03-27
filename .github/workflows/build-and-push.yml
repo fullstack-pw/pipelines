@@ -26,6 +26,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Pull image
+        run: |
+          docker pull registry.fullstack.pw/${{ inputs.app-name }}
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
