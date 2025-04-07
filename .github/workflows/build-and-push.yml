@@ -26,19 +26,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # - name: Pull image
-      #   run: |
-      #     docker pull registry.fullstack.pw/${{ inputs.app-name }} || exit 0
+      - name: Login to Harbor
+        run: |
+          echo $HARBOR_KEY|docker login -u admin --password-stdin harbor.fullstack.pw
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
-          # cache-from: |
-          #   type=registry,ref=registry.fullstack.pw/${{ inputs.app-name }}:latest
-          # cache-to: |
-          #   type=inline
           context: ${{ inputs.app-context }}
           push: true
           file: ${{ inputs.app-dockerfile }}
-          tags: harbor.fullstack.pw/${{ inputs.app-name }}:${{ github.sha }}, harbor.fullstack.pw/${{ inputs.app-name }}:latest
-          #tags: registry.fullstack.pw/${{ inputs.app-name }}:latest
+          tags: harbor.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }}, harbor.fullstack.pw/library/${{ inputs.app-name }}:latest
