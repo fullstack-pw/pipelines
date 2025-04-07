@@ -40,5 +40,5 @@ jobs:
           context: ${{ inputs.app-context }}
           push: true
           file: ${{ inputs.app-dockerfile }}
-          tags: registry.fullstack.pw/${{ inputs.app-name }}:${{ github.sha }}, registry.fullstack.pw/${{ inputs.app-name }}:latest
+          tags: harbor.fullstack.pw/${{ inputs.app-name }}:${{ github.sha }}, harbor.fullstack.pw/${{ inputs.app-name }}:latest
           #tags: registry.fullstack.pw/${{ inputs.app-name }}:latest
