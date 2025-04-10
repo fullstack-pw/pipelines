@@ -28,7 +28,7 @@ jobs:
 
       - name: Login to Harbor
         run: |
-          echo $HARBOR_KEY|docker login -u admin --password-stdin harbor.fullstack.pw
+          echo $HARBOR_KEY|docker login -u admin --password-stdin registry.fullstack.pw
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
@@ -36,4 +36,4 @@ jobs:
           context: ${{ inputs.app-context }}
           push: true
           file: ${{ inputs.app-dockerfile }}
-          tags: harbor.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }}, harbor.fullstack.pw/library/${{ inputs.app-name }}:latest
+          tags: registry.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }}, registry.fullstack.pw/library/${{ inputs.app-name }}:latest
