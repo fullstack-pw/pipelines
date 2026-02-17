@@ -18,22 +18,21 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: self-hosted-buildkit
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Login to Harbor
         run: |
-          echo $HARBOR_KEY|docker login -u admin --password-stdin registry.fullstack.pw
+          mkdir -p ~/.docker
+          echo "{\"auths\":{\"registry.fullstack.pw\":{\"auth\":\"$(echo -n "admin:${HARBOR_KEY}" | base64)\"}}}" > ~/.docker/config.json
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ inputs.app-context }}
-          push: true
-          file: ${{ inputs.app-dockerfile }}
-          tags: registry.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }}, registry.fullstack.pw/library/${{ inputs.app-name }}:latest
+        run: |
+          buildctl build \
+            --frontend dockerfile.v0 \
+            --local context=${{ inputs.app-context }} \
+            --local dockerfile=${{ inputs.app-context }} \
+            --opt filename=${{ inputs.app-dockerfile }} \
+            --output type=image,"name=registry.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }},registry.fullstack.pw/library/${{ inputs.app-name }}:latest",push=true,registry.insecure=true
