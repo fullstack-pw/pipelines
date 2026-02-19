@@ -1,0 +1,210 @@
+name: Ansible Provisioning
+
+on:
+  workflow_call:
+    inputs:
+      inventory-file:
+        type: string
+        default: proxmox/k8s.ini
+      playbook-dir:
+        type: string
+        default: proxmox/playbooks
+      vault-addr:
+        type: string
+        default: https://vault.fullstack.pw
+      new-hosts-file:
+        type: string
+        default: proxmox/new_hosts.txt
+
+jobs:
+  detect-ansible-command:
+    if: >
+      (github.event_name != 'pull_request' && contains(github.event.head_commit.message, '[ansible'))
+    runs-on: self-hosted
+    outputs:
+      playbook: ${{ steps.get-playbook.outputs.playbook }}
+      should_run: ${{ steps.get-playbook.outputs.should_run }}
+    steps:
+      - name: Extract Ansible Playbook from Commit Message
+        id: get-playbook
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            COMMIT_MSG="${{ github.event.pull_request.head.label }} ${{ github.event.pull_request.body }}"
+            COMBINED="$PR_TITLE $COMMIT_MSG"
+          else
+            COMBINED="${{ github.event.head_commit.message }}"
+          fi
+
+          if [[ $COMBINED =~ \[ansible[[:space:]]+([^\]]+)\] ]]; then
+            PLAYBOOK="${BASH_REMATCH[1]}"
+            PLAYBOOK=$(echo $PLAYBOOK | xargs)
+            echo "Found playbook: $PLAYBOOK"
+            echo "playbook=$PLAYBOOK" >> $GITHUB_OUTPUT
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "No ansible command found in commit message"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  run-ansible:
+    needs: detect-ansible-command
+    if: needs.detect-ansible-command.outputs.should_run == 'true'
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Determine Playbook Path
+        id: playbook-path
+        run: |
+          PLAYBOOK="${{ needs.detect-ansible-command.outputs.playbook }}"
+          echo "Processing playbook: $PLAYBOOK"
+
+          if [[ $PLAYBOOK =~ ^k8s-(.+)$ ]]; then
+            echo "Detected K3s cluster: ${BASH_REMATCH[1]}"
+            echo "PLAYBOOK_PATH=${{ inputs.playbook-dir }}/k8s.yml" >> $GITHUB_ENV
+            echo "CLUSTER_NAME=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+            echo "PLAYBOOK_TYPE=k3s" >> $GITHUB_ENV
+          else
+            echo "Detected direct playbook: $PLAYBOOK"
+            if [ -f "${{ inputs.playbook-dir }}/${PLAYBOOK}.yml" ]; then
+              echo "Found direct playbook file: ${{ inputs.playbook-dir }}/${PLAYBOOK}.yml"
+              echo "PLAYBOOK_PATH=${{ inputs.playbook-dir }}/${PLAYBOOK}.yml" >> $GITHUB_ENV
+              echo "PLAYBOOK_TYPE=direct" >> $GITHUB_ENV
+            else
+              echo "Playbook file not found for: ${PLAYBOOK}"
+              echo "Searched for: ${{ inputs.playbook-dir }}/${PLAYBOOK}.yml"
+              exit 1
+            fi
+          fi
+
+          echo "Final PLAYBOOK_PATH: $(echo $PLAYBOOK_PATH)"
+
+      - name: Validate Inventory and New Hosts
+        run: |
+          PLAYBOOK="${{ needs.detect-ansible-command.outputs.playbook }}"
+          echo "Validating inventory for playbook: $PLAYBOOK"
+
+          if [ ! -f "${{ inputs.inventory-file }}" ]; then
+            echo "Inventory file ${{ inputs.inventory-file }} not found"
+            exit 1
+          fi
+
+          if [ -f "${{ inputs.new-hosts-file }}" ] && [ -s "${{ inputs.new-hosts-file }}" ]; then
+            echo "Found new hosts to configure:"
+            cat ${{ inputs.new-hosts-file }}
+          else
+            if [[ $PLAYBOOK =~ ^k8s-(.+)$ ]]; then
+              TARGET_ENV="${BASH_REMATCH[1]}"
+              echo "Checking for existing hosts in environment: $TARGET_ENV"
+
+              if grep -q "^\[${TARGET_ENV}\]" ${{ inputs.inventory-file }} && \
+                 grep -A 10 "^\[${TARGET_ENV}\]" ${{ inputs.inventory-file }} | grep -q "^[a-zA-Z0-9-]"; then
+                echo "Found existing hosts in $TARGET_ENV environment"
+              else
+                echo "No hosts found for environment: $TARGET_ENV"
+                echo "Available environments in inventory:"
+                grep "^\[.*\]" ${{ inputs.inventory-file }} || echo "No groups found in inventory"
+                exit 1
+              fi
+            else
+              echo "No new hosts found and not targeting specific environment"
+              echo "Available hosts in inventory:"
+              grep "ansible_host=" ${{ inputs.inventory-file }} || echo "No hosts found in inventory"
+              exit 0
+            fi
+          fi
+
+      - name: Prepare Environment
+        if: env.PLAYBOOK_PATH != ''
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_ed25519
+
+          if [ -f "${{ inputs.new-hosts-file }}" ] && [ -s "${{ inputs.new-hosts-file }}" ]; then
+            echo "Found new hosts, adding them to known_hosts:"
+
+            while IFS=, read -r IP ENV; do
+              if [ -n "$IP" ] && [[ $IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+                echo "Adding new host $IP to known_hosts..."
+                ssh-keyscan -H $IP >> ~/.ssh/known_hosts 2>/dev/null || echo "Warning: Could not scan $IP"
+              fi
+            done < ${{ inputs.new-hosts-file }}
+          else
+            echo "No new hosts found, not scanning any hosts"
+          fi
+
+      - name: Execute Playbook
+        if: env.PLAYBOOK_PATH != ''
+        run: |
+          export PATH=$PATH:/home/runner/.local/bin
+          export ANSIBLE_HOST_KEY_CHECKING=False
+
+          PLAYBOOK_TYPE="${{ env.PLAYBOOK_TYPE }}"
+          PLAYBOOK_PATH="${{ env.PLAYBOOK_PATH }}"
+
+          echo "Executing $PLAYBOOK_TYPE playbook: $PLAYBOOK_PATH"
+
+          if [[ "$PLAYBOOK_TYPE" == "k3s" ]]; then
+            CLUSTER_NAME="${{ env.CLUSTER_NAME }}"
+            echo "Setting up K3s cluster: $CLUSTER_NAME"
+            ansible-playbook $PLAYBOOK_PATH -i ${{ inputs.inventory-file }} -e "target_hosts=${{ needs.detect-ansible-command.outputs.playbook }}" -e "vault_token=${VAULT_TOKEN}" -e "vault_addr=${{ inputs.vault-addr }}"
+
+          else
+            if [ -f "${{ inputs.new-hosts-file }}" ] && [ -s "${{ inputs.new-hosts-file }}" ]; then
+              echo "Found new hosts, running playbook only on them:"
+              cat ${{ inputs.new-hosts-file }}
+
+              while IFS=, read -r IP ENV; do
+                if [ -n "$IP" ] && [ -n "$ENV" ]; then
+                  echo "Running playbook for new host: $IP ($ENV)"
+                  TEMP_INVENTORY=$(mktemp)
+                  echo "[all]" > $TEMP_INVENTORY
+                  echo "$ENV ansible_host=$IP ansible_user=suporte" >> $TEMP_INVENTORY
+
+                  ansible-playbook -i "$TEMP_INVENTORY" $PLAYBOOK_PATH \
+                    -e "ansible_user=suporte" \
+                    -e "target_hosts=all" \
+                    -e "vault_token=${VAULT_TOKEN}" \
+                    -e "vault_addr=${{ inputs.vault-addr }}"
+
+                  rm $TEMP_INVENTORY
+                fi
+              done < ${{ inputs.new-hosts-file }}
+            else
+              echo "No new hosts found, running playbook normally"
+              ansible-playbook $PLAYBOOK_PATH -i ${{ inputs.inventory-file }}
+            fi
+          fi
+
+      - name: Notify Completion
+        if: success() && env.PLAYBOOK_PATH != ''
+        run: |
+          echo "Ansible playbook execution completed: ${{ needs.detect-ansible-command.outputs.playbook }}"
+
+      - name: Notify Failure
+        if: failure() && env.PLAYBOOK_PATH != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Ansible Provisioning Failed
+
+              Failed to run ansible playbook: \`${{ needs.detect-ansible-command.outputs.playbook }}\`
+
+              Please check the workflow logs for more details.
+              `
+            })
