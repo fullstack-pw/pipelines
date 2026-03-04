@@ -30,7 +30,19 @@ permissions:
   pull-requests: write
 
 jobs:
+  validate-caller:
+    runs-on: self-hosted
+    steps:
+      - name: Validate caller repository
+        run: |
+          ALLOWED="fullstack-pw/infra fullstack-pw/cks-backend fullstack-pw/cks-frontend"
+          if ! echo "$ALLOWED" | grep -qw "${{ github.repository }}"; then
+            echo "::error::Unauthorized caller: ${{ github.repository }}"
+            exit 1
+          fi
+
   manage-environment:
+    needs: validate-caller
     runs-on: self-hosted
     outputs:
       dns_name: ${{ steps.cluster-info.outputs.dns_name }}
@@ -60,7 +72,7 @@ jobs:
         id: check-cluster
         run: |
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
-          if kubectl get cluster "$CLUSTER_NAME" -n "$CLUSTER_NAME" --context tools --kubeconfig /home/runner/.kube/config &>/dev/null; then
+          if kubectl get cluster "$CLUSTER_NAME" -n "$CLUSTER_NAME" --context clustermgmt --kubeconfig /home/runner/.kube/config &>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "Cluster $CLUSTER_NAME already exists"
           else
@@ -73,9 +85,11 @@ jobs:
         if: github.event.action != 'closed' && steps.check-cluster.outputs.exists == 'false'
         run: |
           cd infra
-          AVAILABLE=$(./clusters/scripts/ip_pool_manager.sh check-capacity)
+          echo "Vault addr: $VAULT_ADDR"
+          vault kv list kv/ || echo "Warning: vault kv list failed (path may not exist yet)"
+          AVAILABLE=$(./clusters/scripts/ip_pool_manager.sh check-capacity 2>&1)
           CAPACITY_RESULT=$?
-          echo "Capacity available: $AVAILABLE slots free"
+          echo "check-capacity output: $AVAILABLE"
           if [ "$CAPACITY_RESULT" -ne 0 ]; then
             echo "::error::IP pool exhausted. All 5 ephemeral cluster slots are in use (10 IPs / 2 per cluster). Please close old PRs."
             exit 1
@@ -113,16 +127,16 @@ jobs:
       - name: Create cluster via Cluster API
         if: github.event.action != 'closed' && steps.check-cluster.outputs.exists == 'false'
         run: |
-          kubectl apply -f /tmp/cluster.yaml --context tools --kubeconfig /home/runner/.kube/config
+          kubectl apply -f /tmp/cluster.yaml --context clustermgmt --kubeconfig /home/runner/.kube/config
 
       - name: Copy Proxmox credentials to namespace
         if: github.event.action != 'closed' && steps.check-cluster.outputs.exists == 'false'
         run: |
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
-          kubectl --context tools --kubeconfig /home/runner/.kube/config \
-            get secret proxmox-credentials -n k3s-test -o json | \
-            jq 'del(.metadata.namespace,.metadata.uid,.metadata.resourceVersion,.metadata.creationTimestamp,.metadata.ownerReferences,.metadata.finalizers)' | \
-            kubectl --context tools --kubeconfig /home/runner/.kube/config apply -n "$CLUSTER_NAME" -f - || \
+          kubectl --context clustermgmt --kubeconfig /home/runner/.kube/config \
+            get secret capmox-manager-credentials -n proxmox-infrastructure-system -o json | \
+            jq 'del(.metadata.namespace,.metadata.uid,.metadata.resourceVersion,.metadata.creationTimestamp,.metadata.ownerReferences,.metadata.finalizers) | .metadata.name = "proxmox-credentials"' | \
+            kubectl --context clustermgmt --kubeconfig /home/runner/.kube/config apply -n "$CLUSTER_NAME" -f - || \
             echo "Warning: Could not copy proxmox-credentials (may already exist)"
 
       - name: Wait for cluster available
@@ -133,7 +147,7 @@ jobs:
           kubectl wait --for=condition=Available \
             cluster/$CLUSTER_NAME \
             -n $CLUSTER_NAME \
-            --timeout=5m --context tools --kubeconfig /home/runner/.kube/config
+            --timeout=5m --context clustermgmt --kubeconfig /home/runner/.kube/config
 
       - name: Extract kubeconfig
         if: github.event.action != 'closed' && steps.check-cluster.outputs.exists == 'false'
@@ -141,7 +155,7 @@ jobs:
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
           kubectl get secret ${CLUSTER_NAME}-kubeconfig \
             -n $CLUSTER_NAME \
-            -o jsonpath='{.data.value}' --context tools --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig
+            -o jsonpath='{.data.value}' --context clustermgmt --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig
 
           ORIGINAL_CONTEXT=$(kubectl --kubeconfig /tmp/kubeconfig config current-context)
           kubectl --kubeconfig /tmp/kubeconfig config rename-context "$ORIGINAL_CONTEXT" "$CLUSTER_NAME"
@@ -174,7 +188,7 @@ jobs:
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
           kubectl get secret ${CLUSTER_NAME}-kubeconfig \
             -n $CLUSTER_NAME \
-            -o jsonpath='{.data.value}' --context tools --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig
+            -o jsonpath='{.data.value}' --context clustermgmt --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig
 
           ORIGINAL_CONTEXT=$(kubectl --kubeconfig /tmp/kubeconfig config current-context)
           kubectl --kubeconfig /tmp/kubeconfig config rename-context "$ORIGINAL_CONTEXT" "$CLUSTER_NAME"
@@ -236,7 +250,7 @@ jobs:
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
           kubectl get secret ${CLUSTER_NAME}-kubeconfig \
             -n $CLUSTER_NAME \
-            -o jsonpath='{.data.value}' --context tools --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig || true
+            -o jsonpath='{.data.value}' --context clustermgmt --kubeconfig /home/runner/.kube/config | base64 -d > /tmp/kubeconfig || true
 
           if [ -f /tmp/kubeconfig ]; then
             ORIGINAL_CONTEXT=$(kubectl --kubeconfig /tmp/kubeconfig config current-context 2>/dev/null || echo "")
@@ -257,7 +271,7 @@ jobs:
           make ephemeral-init
           make ephemeral-destroy WORKSPACE=${{ steps.cluster-info.outputs.cluster_name }} || true
 
-          kubectl delete cluster "$CLUSTER_NAME" -n "$CLUSTER_NAME" --context tools --kubeconfig /home/runner/.kube/config || true
+          kubectl delete cluster "$CLUSTER_NAME" -n "$CLUSTER_NAME" --context clustermgmt --kubeconfig /home/runner/.kube/config || true
 
           ./clusters/scripts/ip_pool_manager.sh release "$CLUSTER_NAME" || true
 

@@ -18,7 +18,19 @@ on:
         type: string
 
 jobs:
+  validate-caller:
+    runs-on: self-hosted
+    steps:
+      - name: Validate caller repository
+        run: |
+          ALLOWED="fullstack-pw/infra fullstack-pw/cks-backend fullstack-pw/cks-frontend"
+          if ! echo "$ALLOWED" | grep -qw "${{ github.repository }}"; then
+            echo "::error::Unauthorized caller: ${{ github.repository }}"
+            exit 1
+          fi
+
   deploy-kustomize:
+    needs: validate-caller
     runs-on: self-hosted
 
     steps:

@@ -11,13 +11,25 @@ on:
         default: proxmox/playbooks
       vault-addr:
         type: string
-        default: https://vault.fullstack.pw
+        default: https://vault.toolz.fullstack.pw
       new-hosts-file:
         type: string
         default: proxmox/new_hosts.txt
 
 jobs:
+  validate-caller:
+    runs-on: self-hosted
+    steps:
+      - name: Validate caller repository
+        run: |
+          ALLOWED="fullstack-pw/infra fullstack-pw/cks-backend fullstack-pw/cks-frontend"
+          if ! echo "$ALLOWED" | grep -qw "${{ github.repository }}"; then
+            echo "::error::Unauthorized caller: ${{ github.repository }}"
+            exit 1
+          fi
+
   detect-ansible-command:
+    needs: validate-caller
     if: >
       (github.event_name != 'pull_request' && contains(github.event.head_commit.message, '[ansible'))
     runs-on: self-hosted
