@@ -134,8 +134,8 @@ jobs:
         run: |
           CLUSTER_NAME="${{ steps.cluster-info.outputs.cluster_name }}"
           kubectl --context clustermgmt --kubeconfig /home/runner/.kube/config \
-            get secret capmox-manager-credentials -n proxmox-infrastructure-system -o json | \
-            jq 'del(.metadata.namespace,.metadata.uid,.metadata.resourceVersion,.metadata.creationTimestamp,.metadata.ownerReferences,.metadata.finalizers) | .metadata.name = "proxmox-credentials"' | \
+            get secret proxmox-credentials -n dev -o json | \
+            jq 'del(.metadata.namespace,.metadata.uid,.metadata.resourceVersion,.metadata.creationTimestamp,.metadata.ownerReferences,.metadata.finalizers)' | \
             kubectl --context clustermgmt --kubeconfig /home/runner/.kube/config apply -n "$CLUSTER_NAME" -f - || \
             echo "Warning: Could not copy proxmox-credentials (may already exist)"
 
