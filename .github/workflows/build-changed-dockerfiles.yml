@@ -5,7 +5,7 @@ on:
     inputs:
       registry:
         type: string
-        default: registry.fullstack.pw
+        default: registry.toolz.fullstack.pw
       library-prefix:
         type: string
         default: library

@@ -23,7 +23,7 @@ on:
         default: kustomize/overlays/ephemeral
       registry:
         type: string
-        default: registry.fullstack.pw
+        default: registry.toolz.fullstack.pw
 
 permissions:
   contents: write
@@ -172,14 +172,18 @@ jobs:
 
       # ==================== BUILD AND DEPLOY (PR opened/updated) ====================
 
+      - name: Login to Harbor
+        run: |
+          mkdir -p ~/.docker
+          echo "{\"auths\":{\"${{ inputs.registry }}\":{\"auth\":\"$(echo -n "admin:${HARBOR_KEY}" | base64)\"}}}" > ~/.docker/config.json
+
       - name: Build and push Docker image
         id: build
         if: github.event.action != 'closed'
         run: |
           IMAGE_TAG="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
-          docker build -t ${{ inputs.registry }}/${{ inputs.image-name }}:${IMAGE_TAG} .
-          echo "${HARBOR_KEY}" | docker login ${{ inputs.registry }} -u admin --password-stdin
-          docker push ${{ inputs.registry }}/${{ inputs.image-name }}:${IMAGE_TAG}
+            buildctl build \
+            --output type=image,\"name=${{ inputs.registry }}/library/${{ inputs.image-name }}:latest,${{ inputs.registry }}/library/${{ inputs.image-name }}:${IMAGE_TAG}\",push=true,registry.insecure=true
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Extract kubeconfig
