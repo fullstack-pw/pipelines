@@ -183,6 +183,10 @@ jobs:
         run: |
           IMAGE_TAG="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
             buildctl build \
+            --frontend dockerfile.v0 \
+            # --local context="$DIR" \
+            # --local dockerfile="$DIR" \
+            # --opt filename=$(basename "$DOCKERFILE") \
             --output type=image,\"name=${{ inputs.registry }}/library/${{ inputs.image-name }}:latest,${{ inputs.registry }}/library/${{ inputs.image-name }}:${IMAGE_TAG}\",push=true,registry.insecure=true
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
