@@ -189,7 +189,7 @@ jobs:
             --local context=. \
             --local dockerfile=. \
             --opt filename=${{ inputs.app-dockerfile }} \
-            --output type=image,"name=${{ inputs.registry }}/library/${{ inputs.image-name }}:latest,${{ inputs.registry }}/library/${{ inputs.image-name }}:${IMAGE_TAG}",push=true,registry.insecure=true
+            --output type=image,"name=${{ inputs.registry }}/${{ inputs.image-name }}:latest,${{ inputs.registry }}/${{ inputs.image-name }}:${IMAGE_TAG}",push=true,registry.insecure=true
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Extract kubeconfig
