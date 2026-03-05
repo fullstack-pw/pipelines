@@ -188,7 +188,7 @@ jobs:
             --frontend dockerfile.v0 \
             --local context=. \
             --local dockerfile=. \
-            --opt filename=${{ inputs.app-dockerfile }} \
+            --opt filename=Dockerfile \
             --output type=image,name=${{ inputs.registry }}/${{ inputs.image-name }}:${IMAGE_TAG},push=true,registry.insecure=true
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
