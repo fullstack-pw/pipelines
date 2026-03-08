@@ -38,7 +38,7 @@ jobs:
       - name: Login to Harbor
         run: |
           mkdir -p ~/.docker
-          echo "{\"auths\":{\"registry.fullstack.pw\":{\"auth\":\"$(echo -n "admin:${HARBOR_KEY}" | base64)\"}}}" > ~/.docker/config.json
+          echo "{\"auths\":{\"registry.toolz.fullstack.pw\":{\"auth\":\"$(echo -n "admin:${HARBOR_KEY}" | base64)\"}}}" > ~/.docker/config.json
 
       - name: Build and Push Docker Image
         run: |
@@ -47,4 +47,4 @@ jobs:
             --local context=${{ inputs.app-context }} \
             --local dockerfile=${{ inputs.app-context }} \
             --opt filename=${{ inputs.app-dockerfile }} \
-            --output type=image,"name=registry.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }},registry.fullstack.pw/library/${{ inputs.app-name }}:latest",push=true,registry.insecure=true
+            --output type=image,"name=registry.toolz.fullstack.pw/library/${{ inputs.app-name }}:${{ github.sha }},registry.toolz.fullstack.pw/library/${{ inputs.app-name }}:latest",push=true,registry.insecure=true

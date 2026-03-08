@@ -28,22 +28,22 @@ variables:
     - name: docker:dind-rootless
       alias: docker
       command:
-        - --host=tcp://0.0.0.0:2375  # Explicitly expose the Docker daemon
+        - --host=tcp://0.0.0.0:2375 # Explicitly expose the Docker daemon
         - --tls=false
 
   variables:
-    DOCKER_HOST: tcp://docker:2375  # Point Docker CLI to the DinD service
-    DOCKER_TLS_CERTDIR: ""         # Disable TLS for DinD
-    DOCKER_BUILDKIT: 1             # Enable BuildKit for faster builds
-    IMAGE_TAG: "${CI_COMMIT_SHA}"  # Use commit SHA as the image tag
+    DOCKER_HOST: tcp://docker:2375 # Point Docker CLI to the DinD service
+    DOCKER_TLS_CERTDIR: "" # Disable TLS for DinD
+    DOCKER_BUILDKIT: 1 # Enable BuildKit for faster builds
+    IMAGE_TAG: "${CI_COMMIT_SHA}" # Use commit SHA as the image tag
   script:
     - sleep 10
     - echo "Pulling pre-built image (if exists) to use as cache..."
-    - docker pull registry.fullstack.pw/$APP_NAME:$IMAGE_TAG || true
+    - docker pull registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG || true
     - echo "Building Docker image for $APP_NAME..."
-    - docker build --cache-from registry.fullstack.pw/$APP_NAME:$IMAGE_TAG -t registry.fullstack.pw/$APP_NAME:$IMAGE_TAG $DOCKER_BUILD_PATH
+    - docker build --cache-from registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG -t registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG $DOCKER_BUILD_PATH
     - echo "Pushing Docker image to the registry..."
-    - docker push registry.fullstack.pw/$APP_NAME:$IMAGE_TAG
+    - docker push registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG
 
 .deploy-app-template:
   stage: deploy
