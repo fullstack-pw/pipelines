@@ -1,7 +1,7 @@
 pipelines
 =========
 
-This repository is the single source of truth for all CI/CD pipeline logic across the **fullstack.pw** project. All GitHub Actions reusable workflows live here and are called from thin caller workflows in each application repository.
+This repository is the single source of truth for all CI/CD pipeline logic across the **homelabz.eu** project. All GitHub Actions reusable workflows live here and are called from thin caller workflows in each application repository.
 
 * * * * *
 
@@ -55,9 +55,9 @@ Callers
 
 | Repo | Workflows calling pipelines |
 |---|---|
-| `fullstack-pw/infra` | opentofu-infra, ansible, build-changed-dockerfiles, release, conventional-commits, sec-trivy-fs, sec-trufflehog |
-| `fullstack-pw/cks-backend` | build-and-push, deploy-kustomize, ephemeral-environment |
-| `fullstack-pw/cks-frontend` | build-and-push, deploy-kustomize, ephemeral-environment |
+| `homelabz-eu/infra` | opentofu-infra, ansible, build-changed-dockerfiles, release, conventional-commits, sec-trivy-fs, sec-trufflehog |
+| `homelabz-eu/cks-backend` | build-and-push, deploy-kustomize, ephemeral-environment |
+| `homelabz-eu/cks-frontend` | build-and-push, deploy-kustomize, ephemeral-environment |
 
 * * * * *
 

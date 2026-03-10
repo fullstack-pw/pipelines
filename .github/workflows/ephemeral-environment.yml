@@ -23,7 +23,7 @@ on:
         default: kustomize/overlays/ephemeral
       registry:
         type: string
-        default: registry.toolz.fullstack.pw
+        default: registry.toolz.homelabz.eu
 
 permissions:
   contents: write
@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: Validate caller repository
         run: |
-          ALLOWED="fullstack-pw/infra fullstack-pw/cks-backend fullstack-pw/cks-frontend"
+          ALLOWED="homelabz-eu/infra homelabz-eu/cks-backend homelabz-eu/cks-frontend"
           if ! echo "$ALLOWED" | grep -qw "${{ github.repository }}"; then
             echo "::error::Unauthorized caller: ${{ github.repository }}"
             exit 1
@@ -53,7 +53,7 @@ jobs:
         id: cluster-info
         run: |
           CLUSTER_NAME="pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}"
-          DNS_NAME="pr-${{ github.event.pull_request.number }}-${{ github.event.repository.name }}.ephemeral.fullstack.pw"
+          DNS_NAME="pr-${{ github.event.pull_request.number }}-${{ github.event.repository.name }}.ephemeral.homelabz.eu"
           echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
           echo "dns_name=$DNS_NAME" >> $GITHUB_OUTPUT
 
@@ -64,7 +64,7 @@ jobs:
       - name: Checkout infra repo
         uses: actions/checkout@v4
         with:
-          repository: fullstack-pw/infra
+          repository: homelabz-eu/infra
           token: ${{ secrets.RUNNER }}
           path: infra
 
@@ -295,7 +295,7 @@ jobs:
       - name: Checkout demo-apps repository
         uses: actions/checkout@v4
         with:
-          repository: fullstack-pw/demo-apps
+          repository: homelabz-eu/demo-apps
           path: .
 
       - name: Run Cypress tests

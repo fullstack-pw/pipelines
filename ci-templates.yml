@@ -39,11 +39,11 @@ variables:
   script:
     - sleep 10
     - echo "Pulling pre-built image (if exists) to use as cache..."
-    - docker pull registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG || true
+    - docker pull registry.toolz.homelabz.eu/$APP_NAME:$IMAGE_TAG || true
     - echo "Building Docker image for $APP_NAME..."
-    - docker build --cache-from registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG -t registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG $DOCKER_BUILD_PATH
+    - docker build --cache-from registry.toolz.homelabz.eu/$APP_NAME:$IMAGE_TAG -t registry.toolz.homelabz.eu/$APP_NAME:$IMAGE_TAG $DOCKER_BUILD_PATH
     - echo "Pushing Docker image to the registry..."
-    - docker push registry.toolz.fullstack.pw/$APP_NAME:$IMAGE_TAG
+    - docker push registry.toolz.homelabz.eu/$APP_NAME:$IMAGE_TAG
 
 .deploy-app-template:
   stage: deploy

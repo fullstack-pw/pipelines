@@ -11,7 +11,7 @@ on:
         default: proxmox/playbooks
       vault-addr:
         type: string
-        default: https://vault.toolz.fullstack.pw
+        default: https://vault.toolz.homelabz.eu
       new-hosts-file:
         type: string
         default: proxmox/new_hosts.txt
@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Validate caller repository
         run: |
-          ALLOWED="fullstack-pw/infra fullstack-pw/cks-backend fullstack-pw/cks-frontend"
+          ALLOWED="homelabz-eu/infra homelabz-eu/cks-backend homelabz-eu/cks-frontend"
           if ! echo "$ALLOWED" | grep -qw "${{ github.repository }}"; then
             echo "::error::Unauthorized caller: ${{ github.repository }}"
             exit 1
